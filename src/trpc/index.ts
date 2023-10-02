@@ -1,5 +1,5 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { publicProcedure, router } from "./trpc";
+import { privateProcedure, publicProcedure, router } from "./trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@/db";
 
@@ -7,7 +7,7 @@ export const appRouter = router({
   authCallback: publicProcedure.query(async () => {
     const { getUser } = getKindeServerSession();
     const user = getUser();
-    if (!user.id || !user.email) {
+    if (!user || !user.id || !user.email) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
 
@@ -24,7 +24,14 @@ export const appRouter = router({
     }
     return { success: true };
   }),
-  // ...
+  getUserFiles: privateProcedure.query(({ ctx }) => {
+    const { userId, user } = ctx;
+    return db.file.findMany({
+      where: {
+        userId,
+      },
+    });
+  }),
 });
 
 // Export type router type signature,
