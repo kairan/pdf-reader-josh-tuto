@@ -1,14 +1,36 @@
 "use client";
 import { trpc } from "@/app/_trpc/client";
 import UploadButton from "./UploadButton";
-import { Ghost, MessageSquare, Plus, TrashIcon } from "lucide-react";
+import {
+  Ghost,
+  Loader2Icon,
+  MessageSquare,
+  Plus,
+  TrashIcon,
+} from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Button } from "./ui/button";
+import { useState } from "react";
 const Dashboard = () => {
+  const [currentDeletingFile, setCurrentDeletingFile] = useState<string | null>(
+    null
+  );
+  const utils = trpc.useContext();
   const { data: files, isLoading } = trpc.getUserFiles.useQuery();
-  console.log(files, isLoading);
+  const { mutate: deleteFile } = trpc.deleteFile.useMutation({
+    onSuccess: () => {
+      utils.getUserFiles.invalidate();
+    },
+    onMutate({ id }) {
+      setCurrentDeletingFile(id);
+    },
+    onSettled() {
+      setCurrentDeletingFile(null);
+    },
+  });
+
   return (
     <main className="mx-auto max-w-7xl md:p-10">
       <div className="mt-8 flex flex-col items-start justify-between gap-4 border-gray-200 pb-5 sm:flex-row sm:items-center sm:gap-0">
@@ -54,8 +76,17 @@ const Dashboard = () => {
                     <MessageSquare className="h-4 w-4 " />
                     mocked
                   </div>
-                  <Button size="sm" className="w-full" variant="destructive">
-                    <TrashIcon className="h-4 w-4 " />
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    variant="destructive"
+                    onClick={() => deleteFile({ id: file.id })}
+                  >
+                    {currentDeletingFile === file.id ? (
+                      <Loader2Icon className="h-4 w-4 animate-spin " />
+                    ) : (
+                      <TrashIcon className="h-4 w-4 " />
+                    )}
                   </Button>
                 </div>
               </li>
